@@ -2,8 +2,6 @@ package breaker
 
 import (
 	"errors"
-	"sync"
-	"time"
 
 	"github.com/haunt98/breaker/pkg/timeout"
 )
@@ -26,8 +24,6 @@ type CircuitBreaker interface {
 }
 
 type circuitBreaker struct {
-	sync.Mutex
-
 	status int
 
 	failureCounter   int
@@ -38,11 +34,11 @@ type circuitBreaker struct {
 	successThreshold int
 }
 
-func NewCircuitBreaker(failureThreshold int, failureDuration time.Duration, successThreshold int) CircuitBreaker {
+func NewCircuitBreaker(failureThreshold int, failureTimeout timeout.Timeout, successThreshold int) CircuitBreaker {
 	return &circuitBreaker{
 		status:           closedStatus,
 		failureThreshold: failureThreshold,
-		failureTimeout:   timeout.NewTimeout(failureDuration),
+		failureTimeout:   failureTimeout,
 		successThreshold: successThreshold,
 	}
 }
@@ -61,11 +57,6 @@ func (cb *circuitBreaker) Do(fn func() (interface{}, error)) (interface{}, error
 }
 
 func (cb *circuitBreaker) doClosed(fn func() (interface{}, error)) (interface{}, error) {
-	cb.Lock()
-	defer cb.Unlock()
-
-	cb.failureCounter = 0
-
 	result, err := fn()
 	if err != nil {
 		cb.failureCounter++
@@ -81,11 +72,9 @@ func (cb *circuitBreaker) doClosed(fn func() (interface{}, error)) (interface{},
 }
 
 func (cb *circuitBreaker) doOpen(fn func() (interface{}, error)) (interface{}, error) {
-	cb.Lock()
-	defer cb.Unlock()
-
 	if cb.failureTimeout.IsStop() {
 		cb.status = halfOpenStatus
+		cb.successCounter = 0
 
 		return cb.doHalfOpen(fn)
 	}
@@ -94,11 +83,6 @@ func (cb *circuitBreaker) doOpen(fn func() (interface{}, error)) (interface{}, e
 }
 
 func (cb *circuitBreaker) doHalfOpen(fn func() (interface{}, error)) (interface{}, error) {
-	cb.Lock()
-	defer cb.Unlock()
-
-	cb.successCounter = 0
-
 	result, err := fn()
 	if err != nil {
 		return nil, err
@@ -107,6 +91,7 @@ func (cb *circuitBreaker) doHalfOpen(fn func() (interface{}, error)) (interface{
 	cb.successCounter++
 	if cb.successCounter >= cb.successThreshold {
 		cb.status = closedStatus
+		cb.failureCounter = 0
 	}
 
 	return result, nil
