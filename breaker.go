@@ -4,6 +4,8 @@ import (
 	"errors"
 	"sync"
 	"time"
+
+	"github.com/haunt98/breaker/pkg/timeout"
 )
 
 // https://docs.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker
@@ -30,18 +32,17 @@ type circuitBreaker struct {
 
 	failureCounter   int
 	failureThreshold int
-	failureStart     time.Time
-	failureTimeout   time.Duration
+	failureTimeout   timeout.Timeout
 
 	successCounter   int
 	successThreshold int
 }
 
-func NewCircuitBreaker(failureThreshold int, failureTimeout time.Duration, successThreshold int) CircuitBreaker {
+func NewCircuitBreaker(failureThreshold int, failureDuration time.Duration, successThreshold int) CircuitBreaker {
 	return &circuitBreaker{
 		status:           closedStatus,
 		failureThreshold: failureThreshold,
-		failureTimeout:   failureTimeout,
+		failureTimeout:   timeout.NewTimeout(failureDuration),
 		successThreshold: successThreshold,
 	}
 }
@@ -70,7 +71,7 @@ func (cb *circuitBreaker) doClosed(fn func() (interface{}, error)) (interface{},
 		cb.failureCounter++
 		if cb.failureCounter >= cb.failureThreshold {
 			cb.status = openStatus
-			cb.failureStart = time.Now()
+			cb.failureTimeout.Start()
 		}
 
 		return nil, err
@@ -83,13 +84,13 @@ func (cb *circuitBreaker) doOpen(fn func() (interface{}, error)) (interface{}, e
 	cb.Lock()
 	defer cb.Unlock()
 
-	if time.Since(cb.failureStart) < cb.failureTimeout {
-		return nil, CircuitBreakerOpenError
+	if cb.failureTimeout.IsStop() {
+		cb.status = halfOpenStatus
+
+		return cb.doHalfOpen(fn)
 	}
 
-	cb.status = halfOpenStatus
-
-	return cb.doHalfOpen(fn)
+	return nil, CircuitBreakerOpenError
 }
 
 func (cb *circuitBreaker) doHalfOpen(fn func() (interface{}, error)) (interface{}, error) {
