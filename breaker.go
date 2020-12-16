@@ -9,9 +9,9 @@ import (
 // https://docs.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker
 
 const (
-	closedStatus int = iota + 1
-	openStatus
-	halfOpenStatus
+	ClosedStatus int = iota + 1
+	OpenStatus
+	HalfOpenStatus
 )
 
 var (
@@ -20,6 +20,7 @@ var (
 )
 
 type CircuitBreaker interface {
+	GetStatus() int
 	Do(fn func() (interface{}, error)) (interface{}, error)
 }
 
@@ -36,20 +37,24 @@ type circuitBreaker struct {
 
 func NewCircuitBreaker(failureThreshold int, failureTimeout timeout.Timeout, successThreshold int) CircuitBreaker {
 	return &circuitBreaker{
-		status:           closedStatus,
+		status:           ClosedStatus,
 		failureThreshold: failureThreshold,
 		failureTimeout:   failureTimeout,
 		successThreshold: successThreshold,
 	}
 }
 
+func (cb *circuitBreaker) GetStatus() int {
+	return cb.status
+}
+
 func (cb *circuitBreaker) Do(fn func() (interface{}, error)) (interface{}, error) {
 	switch cb.status {
-	case closedStatus:
+	case ClosedStatus:
 		return cb.doClosed(fn)
-	case openStatus:
+	case OpenStatus:
 		return cb.doOpen(fn)
-	case halfOpenStatus:
+	case HalfOpenStatus:
 		return cb.doHalfOpen(fn)
 	default:
 		return nil, UnknownStatusError
@@ -61,7 +66,7 @@ func (cb *circuitBreaker) doClosed(fn func() (interface{}, error)) (interface{},
 	if err != nil {
 		cb.failureCounter++
 		if cb.failureCounter >= cb.failureThreshold {
-			cb.status = openStatus
+			cb.status = OpenStatus
 			cb.failureTimeout.Start()
 		}
 
@@ -73,7 +78,7 @@ func (cb *circuitBreaker) doClosed(fn func() (interface{}, error)) (interface{},
 
 func (cb *circuitBreaker) doOpen(fn func() (interface{}, error)) (interface{}, error) {
 	if cb.failureTimeout.IsStop() {
-		cb.status = halfOpenStatus
+		cb.status = HalfOpenStatus
 		cb.successCounter = 0
 
 		return cb.doHalfOpen(fn)
@@ -90,7 +95,7 @@ func (cb *circuitBreaker) doHalfOpen(fn func() (interface{}, error)) (interface{
 
 	cb.successCounter++
 	if cb.successCounter >= cb.successThreshold {
-		cb.status = closedStatus
+		cb.status = ClosedStatus
 		cb.failureCounter = 0
 	}
 
