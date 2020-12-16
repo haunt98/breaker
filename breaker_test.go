@@ -20,8 +20,9 @@ func TestCircuitBreakerDo(t *testing.T) {
 
 	// Closed
 
-	wantResult := 69
+	assert.Equal(t, ClosedStatus, cb.GetStatus())
 
+	wantResult := 69
 	gotResult, gotErr := cb.Do(successFn(wantResult))
 	assert.NoError(t, gotErr)
 	assert.Equal(t, wantResult, gotResult)
@@ -29,23 +30,20 @@ func TestCircuitBreakerDo(t *testing.T) {
 	// Open
 
 	failureTimeout.EXPECT().Start()
-
 	wantErr := errors.New("error")
-
 	for i := 0; i < failureThreshold; i++ {
 		gotResult, gotErr = cb.Do(failureFn(wantErr))
 		assert.Equal(t, wantErr, gotErr)
 		assert.Nil(t, gotResult)
 	}
+	assert.Equal(t, OpenStatus, cb.GetStatus())
 
 	failureTimeout.EXPECT().IsStop().Return(false)
-
 	gotResult, gotErr = cb.Do(successFn(420))
 	assert.Equal(t, gotErr, CircuitBreakerOpenError)
 	assert.Nil(t, gotResult)
 
 	failureTimeout.EXPECT().IsStop().Return(false)
-
 	gotResult, gotErr = cb.Do(failureFn(errors.New("some error")))
 	assert.Equal(t, gotErr, CircuitBreakerOpenError)
 	assert.Nil(t, gotResult)
@@ -53,14 +51,14 @@ func TestCircuitBreakerDo(t *testing.T) {
 	// Half open
 
 	failureTimeout.EXPECT().IsStop().Return(true)
+	cb.Do(successFn(wantResult))
+	assert.Equal(t, HalfOpenStatus, cb.GetStatus())
 
 	wantResult = 1337
+	gotResult, gotErr = cb.Do(successFn(wantResult))
+	assert.NoError(t, gotErr)
+	assert.Equal(t, wantResult, gotResult)
 
-	for i := 0; i < successThreshold; i++ {
-		gotResult, gotErr = cb.Do(successFn(wantResult))
-		assert.NoError(t, gotErr)
-		assert.Equal(t, wantResult, gotResult)
-	}
 }
 
 func successFn(v interface{}) func() (interface{}, error) {
