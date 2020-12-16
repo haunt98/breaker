@@ -2,6 +2,8 @@ package timeout
 
 import "time"
 
+//go:generate mockgen -source=timeout.go -destination=gomock/timeout.go
+
 type Timeout interface {
 	Start()
 	IsStop() bool
