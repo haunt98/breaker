@@ -50,15 +50,30 @@ func TestCircuitBreakerDo(t *testing.T) {
 
 	// Half open
 
+	wantResult = 1337
+
 	failureTimeout.EXPECT().IsStop().Return(true)
 	cb.Do(successFn(wantResult))
+	gotResult, gotErr = cb.Do(successFn(wantResult))
+	assert.NoError(t, gotErr)
+	assert.Equal(t, wantResult, gotResult)
 	assert.Equal(t, HalfOpenStatus, cb.GetStatus())
 
-	wantResult = 1337
 	gotResult, gotErr = cb.Do(successFn(wantResult))
 	assert.NoError(t, gotErr)
 	assert.Equal(t, wantResult, gotResult)
 
+	// Closed
+
+	wantResult = 1111
+
+	// Already 2 times before
+	for i := 0; i < successThreshold-2; i++ {
+		gotResult, gotErr = cb.Do(successFn(wantResult))
+		assert.NoError(t, gotErr)
+		assert.Equal(t, wantResult, gotResult)
+	}
+	assert.Equal(t, ClosedStatus, cb.GetStatus())
 }
 
 func successFn(v interface{}) func() (interface{}, error) {
