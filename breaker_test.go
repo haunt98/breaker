@@ -53,7 +53,10 @@ func TestCircuitBreakerDo(t *testing.T) {
 	wantResult = 1337
 
 	failureTimeout.EXPECT().IsStop().Return(true)
-	cb.Do(successFn(wantResult))
+	gotResult, gotErr = cb.Do(successFn(wantResult))
+	assert.NoError(t, gotErr)
+	assert.Equal(t, wantResult, gotResult)
+	assert.Equal(t, HalfOpenStatus, cb.GetStatus())
 	gotResult, gotErr = cb.Do(successFn(wantResult))
 	assert.NoError(t, gotErr)
 	assert.Equal(t, wantResult, gotResult)
