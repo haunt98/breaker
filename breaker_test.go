@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/golang/mock/gomock"
-	mock_timeout "github.com/haunt98/breaker/pkg/timeout/gomock"
+	mock_timeout "github.com/haunt98/breaker/timeout/gomock"
 	"github.com/stretchr/testify/assert"
 )
 

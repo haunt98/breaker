@@ -3,7 +3,7 @@ package breaker
 import (
 	"errors"
 
-	"github.com/haunt98/breaker/pkg/timeout"
+	"github.com/haunt98/breaker/timeout"
 )
 
 // https://docs.microsoft.com/en-us/azure/architecture/patterns/circuit-breaker
