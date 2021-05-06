@@ -5,46 +5,35 @@
 package mock_timeout
 
 import (
-	gomock "github.com/golang/mock/gomock"
 	reflect "reflect"
+
+	gomock "github.com/golang/mock/gomock"
 )
 
-// MockTimeout is a mock of Timeout interface
+// MockTimeout is a mock of Timeout interface.
 type MockTimeout struct {
 	ctrl     *gomock.Controller
 	recorder *MockTimeoutMockRecorder
 }
 
-// MockTimeoutMockRecorder is the mock recorder for MockTimeout
+// MockTimeoutMockRecorder is the mock recorder for MockTimeout.
 type MockTimeoutMockRecorder struct {
 	mock *MockTimeout
 }
 
-// NewMockTimeout creates a new mock instance
+// NewMockTimeout creates a new mock instance.
 func NewMockTimeout(ctrl *gomock.Controller) *MockTimeout {
 	mock := &MockTimeout{ctrl: ctrl}
 	mock.recorder = &MockTimeoutMockRecorder{mock}
 	return mock
 }
 
-// EXPECT returns an object that allows the caller to indicate expected use
+// EXPECT returns an object that allows the caller to indicate expected use.
 func (m *MockTimeout) EXPECT() *MockTimeoutMockRecorder {
 	return m.recorder
 }
 
-// Start mocks base method
-func (m *MockTimeout) Start() {
-	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "Start")
-}
-
-// Start indicates an expected call of Start
-func (mr *MockTimeoutMockRecorder) Start() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Start", reflect.TypeOf((*MockTimeout)(nil).Start))
-}
-
-// IsStop mocks base method
+// IsStop mocks base method.
 func (m *MockTimeout) IsStop() bool {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "IsStop")
@@ -52,8 +41,20 @@ func (m *MockTimeout) IsStop() bool {
 	return ret0
 }
 
-// IsStop indicates an expected call of IsStop
+// IsStop indicates an expected call of IsStop.
 func (mr *MockTimeoutMockRecorder) IsStop() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "IsStop", reflect.TypeOf((*MockTimeout)(nil).IsStop))
+}
+
+// Start mocks base method.
+func (m *MockTimeout) Start() {
+	m.ctrl.T.Helper()
+	m.ctrl.Call(m, "Start")
+}
+
+// Start indicates an expected call of Start.
+func (mr *MockTimeoutMockRecorder) Start() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Start", reflect.TypeOf((*MockTimeout)(nil).Start))
 }
